@@ -4,3 +4,18 @@ faang:
   - AMZN
   - NFLX
   - GOOGL
+
+tech:
+  - FB
+  - AAPL
+  - AMZN
+  - NFLX
+  - GOOGL
+  - SQ
+  - MSFT
+  - OKTA
+
+adtech:
+  - TTD
+  - ADOBE
+  - RAMP
