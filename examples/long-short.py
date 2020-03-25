@@ -1,17 +1,24 @@
 import threading
 import time
 import datetime
-import utils.alpaca_helpers
+from utils import alpaca_helper, time_helper
+from utils.yaml_helpers import get_ticker_symbols_from_yaml
 
 
-# example edited from: https://github.com/alpacahq/alpaca-trade-api-python/tree/master/examples
 class LongShort:
-    def __init__(self):
-        self.alpaca = utils.get_alpaca()
+    """
+    example edited from: https://github.com/alpacahq/alpaca-trade-api-python/tree/master/examples
+    """
 
-        stockUniverse = ['DOMO', 'TLRY', 'SQ', 'MRO', 'AAPL', 'GM', 'SNAP', 'SHOP', 'SPLK', 'BA', 'AMZN', 'SUI', 'SUN',
-                         'TSLA', 'CGC', 'SPWR', 'NIO', 'CAT', 'MSFT', 'PANW', 'OKTA', 'TWTR', 'TM', 'RTN', 'ATVI', 'GS',
-                         'BAC', 'MS', 'TWLO', 'QCOM', ]
+    def __init__(self):
+        self.alpaca_helper = alpaca_helper.AlpacaHelper()
+        self.alpaca = self.alpaca_helper.get_alpaca()
+        self.time_helper = time_helper.TimeHelper(self.alpaca)
+
+        stockUniverse = get_ticker_symbols_from_yaml("faang")
+        # ['DOMO', 'TLRY', 'SQ', 'MRO', 'AAPL', 'GM', 'SNAP', 'SHOP', 'SPLK', 'BA', 'AMZN', 'SUI', 'SUN',
+        #              'TSLA', 'CGC', 'SPWR', 'NIO', 'CAT', 'MSFT', 'PANW', 'OKTA', 'TWTR', 'TM', 'RTN', 'ATVI', 'GS',
+        #              'BAC', 'MS', 'TWLO', 'QCOM', ]
         # Format the allStocks variable for use in the class.
         self.allStocks = []
         for stock in stockUniverse:
@@ -29,14 +36,11 @@ class LongShort:
         self.timeToClose = None
 
     def run(self):
-        # First, cancel any existing orders so they don't impact our buying power.
-        orders = self.alpaca.list_orders(status="open")
-        for order in orders:
-            self.alpaca.cancel_order(order.id)
+        self.alpaca_helper.clear_pending_trades()
 
         # Wait for market to open.
         print("Waiting for market to open...")
-        tAMO = threading.Thread(target=self.awaitMarketOpen)
+        tAMO = threading.Thread(target=self.time_helper.await_market_open())
         tAMO.start()
         tAMO.join()
         print("Market opened.")
@@ -75,18 +79,6 @@ class LongShort:
                 tRebalance.start()
                 tRebalance.join()
                 time.sleep(60)
-
-    # Wait for market to open.
-    def awaitMarketOpen(self):
-        isOpen = self.alpaca.get_clock().is_open
-        while (not isOpen):
-            clock = self.alpaca.get_clock()
-            openingTime = clock.next_open.replace(tzinfo=datetime.timezone.utc).timestamp()
-            currTime = clock.timestamp.replace(tzinfo=datetime.timezone.utc).timestamp()
-            timeToOpen = int((openingTime - currTime) / 60)
-            print(str(timeToOpen) + " minutes til market open.")
-            time.sleep(60)
-            isOpen = self.alpaca.get_clock().is_open
 
     def rebalance(self):
         tRerank = threading.Thread(target=self.rerank)
@@ -330,6 +322,6 @@ class LongShort:
         self.allStocks.sort(key=lambda x: x[1])
 
 
-## Run the LongShort class
+# Run the LongShort class
 ls = LongShort()
 ls.run()
