@@ -13,5 +13,4 @@ def get_secrets():
 def get_ticker_symbols_from_yaml(key):
     with open(STOCKS_YAML_FILE) as file:
         stocks = yaml.load(file, Loader=yaml.FullLoader)
-        print(stocks)
         return stocks.get(key)
